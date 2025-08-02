@@ -1,0 +1,19 @@
+{
+  "name": "goethe-bd-test",
+  "version": "1.0.0",
+  "description": "A script that checks Goethe-BD slot availability and sends Telegram alerts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "jsdom": "^24.0.0",
+    "node-fetch": "^2.6.12"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
