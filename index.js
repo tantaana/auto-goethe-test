@@ -12,31 +12,42 @@ const url = 'https://www.goethe.de/ins/bd/en/spr/prf/gzsd1.cfm';
 // Main checking function
 async function checkButton() {
     try {
-        const res = await fetch(url);
-        const html = await res.text();
+        const res = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            }
+        });
 
+        const html = await res.text();
         const dom = new JSDOM(html);
         const prButtons = dom.window.document.querySelectorAll('.pr-buttons');
+
+        console.log(`🔎 Found ${prButtons.length} .pr-buttons`);
 
         let foundActive = false;
 
         for (let i = 0; i < prButtons.length; i++) {
             const button = prButtons[i].querySelector('button');
-            if (!button) continue;
+            if (!button) {
+                console.log(`❌ No <button> inside .pr-buttons[${i}]`);
+                continue;
+            }
 
-            const text = button.textContent.trim().toLowerCase();
+            const text = button.textContent.trim();
+            const textLower = text.toLowerCase();
             const isDisabled = button.hasAttribute('disabled');
 
-            if (text === 'book' && !isDisabled) {
-                console.log(`✅ Found active button at index ${i}: "${text}"`);
+            console.log(`🔍 Button #${i + 1}: text="${text}", disabled=${isDisabled}`);
+
+            if (textLower === 'book' && !isDisabled) {
+                console.log(`✅ Button #${i + 1} is ACTIVE!`);
                 await sendTelegramNotification(
                     'Goethe Slot Open',
-                    `🚨 Booking button #${i + 1} ("${button.textContent.trim()}") is now clickable!`
+                    `🚨 Booking button #${i + 1} ("${text}") is now clickable!`
                 );
                 foundActive = true;
-                break; // optional: stop after first active button
-            } else {
-                console.log(`🔁 Button #${i + 1} not active (text="${text}", disabled=${isDisabled})`);
+                break; // Stop after first active button is found
             }
         }
 
