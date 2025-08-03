@@ -5,6 +5,7 @@ const http = require('http');
 // Telegram setup
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
+
 // Target URL to check
 const url = 'https://www.goethe.de/ins/bd/en/spr/prf/gzsd1.cfm';
 
@@ -16,17 +17,33 @@ async function checkButton() {
 
         const dom = new JSDOM(html);
         const prButtons = dom.window.document.querySelectorAll('.pr-buttons');
-        const button = prButtons[1]?.querySelector('button');
 
-        if (button && !button.disabled) {
-            console.log('✅ Button is ACTIVE! Sending notification.');
-            await sendTelegramNotification(
-                'Goethe Slot Open',
-                '🚨 The 2nd booking button on Goethe BD is now clickable!'
-            );
-        } else {
-            console.log('🔁 Button still disabled.');
+        let foundActive = false;
+
+        for (let i = 0; i < prButtons.length; i++) {
+            const button = prButtons[i].querySelector('button');
+            if (!button) continue;
+
+            const text = button.textContent.trim().toLowerCase();
+            const isDisabled = button.hasAttribute('disabled');
+
+            if (text === 'book' && !isDisabled) {
+                console.log(`✅ Found active button at index ${i}: "${text}"`);
+                await sendTelegramNotification(
+                    'Goethe Slot Open',
+                    `🚨 Booking button #${i + 1} ("${button.textContent.trim()}") is now clickable!`
+                );
+                foundActive = true;
+                break; // optional: stop after first active button
+            } else {
+                console.log(`🔁 Button #${i + 1} not active (text="${text}", disabled=${isDisabled})`);
+            }
         }
+
+        if (!foundActive) {
+            console.log('🔁 No active booking button found.');
+        }
+
     } catch (err) {
         console.error('❌ Error in checkButton():', err);
     }
