@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const { JSDOM } = require('jsdom');
 const http = require('http');
+const fs = require('fs'); // <-- Added here to use file system
 
 // Telegram setup
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -20,6 +21,11 @@ async function checkButton() {
         });
 
         const html = await res.text();
+
+        // === SAVE fetched HTML to a file for inspection ===
+        fs.writeFileSync('debug.html', html);
+        console.log('📝 Saved fetched HTML to debug.html');
+
         const dom = new JSDOM(html);
         const prButtons = dom.window.document.querySelectorAll('.pr-buttons');
 
@@ -105,15 +111,30 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('💥 Unhandled Promise Rejection:', reason);
 });
 
-// Start checking
-checkButton();
-
-// 🌐 Minimal HTTP server for Render health check and UptimeRobot ping logging
 const serverPort = process.env.PORT || 3000;
+
+// === HTTP server with /debug-html route to serve saved HTML file ===
 http.createServer((req, res) => {
+    if (req.url === '/debug-html') {
+        try {
+            const data = fs.readFileSync('debug.html', 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(data);
+            console.log('🌐 Served debug.html');
+        } catch (err) {
+            res.writeHead(500);
+            res.end('Error reading debug.html');
+            console.error('❌ Error reading debug.html:', err);
+        }
+        return;
+    }
+
     console.log(`🌐 Received ping at ${new Date().toISOString()} from ${req.socket.remoteAddress}`);
     res.writeHead(200);
     res.end('OK');
 }).listen(serverPort, () => {
     console.log(`🌐 HTTP server listening on port ${serverPort}`);
 });
+
+// Start checking
+checkButton();
